@@ -1,0 +1,46 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="my-orders">
+    <h2>My Orders</h2>
+    <div class="container" id="orders-container">
+        <!-- Orders will be loaded here -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadOrders() {
+        const response = await fetch('/api/order/userorders');
+        const result = await response.json();
+        const container = document.getElementById('orders-container');
+        
+        if (result.success) {
+            container.innerHTML = result.data.map(order => `
+                <div class="my-orders-order">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ff4c24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                    <p>${order.items.map(item => item.name + " x " + item.quantity).join(", ")}</p>
+                    <p>$${order.amount}</p>
+                    <p>Items: ${order.items.length}</p>
+                    <p><span>&#x25cf;</span> <b>${order.status}</b></p>
+                    <button onclick="loadOrders()">Track Order</button>
+                </div>
+            `).join('');
+        }
+    }
+
+    window.addEventListener('load', loadOrders);
+</script>
+<style>
+    .my-orders { margin: 50px 8%; }
+    .my-orders-order { display: grid; grid-template-columns: 0.5fr 2fr 1fr 1fr 2fr 1fr; align-items: center; gap: 30px; font-size: 14px; padding: 10px 20px; color: #454545; border: 1px solid var(--primary-color); margin-top: 30px; }
+    .my-orders-order p span { color: var(--primary-color); }
+    .my-orders-order b { font-weight: 500; color: #454545; }
+    .my-orders-order button { border: none; padding: 12px 0px; border-radius: 4px; background-color: #ffe1e1; color: #454545; }
+    @media (max-width: 900px) {
+        .my-orders-order { grid-template-columns: 1fr 2fr 1fr; row-gap: 5px; }
+        .my-orders-order button { font-size: 10px; }
+    }
+</style>
+{% endblock %}

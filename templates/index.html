@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="header">
+    <div class="header-contents">
+        <h2>Order your favourite food here</h2>
+        <p>Choose from a diverse menu featuring a delectable array of dishes crafted with the finest ingredients and culinary expertise. Our mission is to satisfy your cravings and elevate your dining experience, one delicious meal at a time.</p>
+        <button onclick="scrollToMenu()">View Menu</button>
+    </div>
+</div>
+
+<div class="food-display" id="menu">
+    <h2>Top dishes near you</h2>
+    <div class="food-display-list" id="food-list">
+        <!-- Food items will be loaded here via JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadFood() {
+        const response = await fetch('/api/food/list');
+        const result = await response.json();
+        const foodList = document.getElementById('food-list');
+        
+        if (result.success) {
+            foodList.innerHTML = result.data.map(item => `
+                <div class="food-item">
+                    <div class="food-item-img-container">
+                        <img class="food-item-image" src="/uploads/${item.image}" alt="${item.name}">
+                        <img class="add" onclick="addToCart('${item.id}')" src="/static/images/add_icon_white.png" alt="add">
+                    </div>
+                    <div class="food-item-info">
+                        <div class="food-item-name-rating">
+                            <p>${item.name}</p>
+                            <!-- Rating placeholder -->
+                        </div>
+                        <p class="food-item-desc">${item.description}</p>
+                        <p class="food-item-price">$${item.price}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+    }
+
+    function scrollToMenu() {
+        document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    window.addEventListener('load', loadFood);
+</script>
+{% endblock %}

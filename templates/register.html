@@ -1,0 +1,57 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-popup">
+        <div class="auth-popup-title">
+            <h2>Sign Up</h2>
+        </div>
+        <div class="auth-popup-inputs">
+            <input id="reg-name" type="text" placeholder="Your name" required>
+            <input id="reg-email" type="email" placeholder="Your email" required>
+            <input id="reg-password" type="password" placeholder="Password" required>
+        </div>
+        <button onclick="register()">Create account</button>
+        <div class="auth-popup-condition">
+            <input type="checkbox" id="reg-terms" required>
+            <p>By continuing, i agree to the terms of use & privacy policy.</p>
+        </div>
+        <p>Already have an account? <span onclick="location.href='/login'">Login here</span></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function register() {
+        const name = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+        const terms = document.getElementById('reg-terms').checked;
+        
+        if (!terms) {
+            alert("Please agree to the terms of use & privacy policy.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                location.href = '/';
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            console.error("Registration failed:", error);
+            alert("An error occurred during registration. Please check the console.");
+        }
+    }
+</script>
+{% endblock %}

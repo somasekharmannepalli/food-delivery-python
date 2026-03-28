@@ -1,0 +1,142 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="cart">
+    <div class="cart-items">
+        <div class="cart-items-title">
+            <p>Items</p> <p>Title</p> <p>Price</p> <p>Quantity</p> <p>Total</p> <p>Remove</p>
+        </div>
+        <br />
+        <hr />
+        <div id="cart-items-list">
+            <!-- Cart items will be loaded here -->
+        </div>
+    </div>
+    <div class="cart-bottom">
+        <div class="cart-total">
+            <h2>Cart Totals</h2>
+            <div>
+                <div class="cart-total-details"><p>Subtotal</p><p id="cart-subtotal">$0</p></div>
+                <hr />
+                <div class="cart-total-details"><p>Delivery Fee</p><p id="delivery-fee">$2</p></div>
+                <hr />
+                <div class="cart-total-details"><b>Total</b><b id="cart-total-amount">$0</b></div>
+            </div>
+            <button onclick="placeOrder()">PROCEED TO CHECKOUT</button>
+        </div>
+        <div class="cart-promocode">
+            <div>
+                <p>If you have a promo code, Enter it here</p>
+                <div class="cart-promocode-input">
+                    <input type="text" placeholder="promo code"/>
+                    <button>Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadCart() {
+        const response = await fetch('/api/cart/get');
+        const cartResult = await response.json();
+        
+        const foodResponse = await fetch('/api/food/list');
+        const foodResult = await foodResponse.json();
+        
+        if (cartResult.success && foodResult.success) {
+            const foodList = foodResult.data;
+            const cartData = cartResult.cartData;
+            const cartListUl = document.getElementById('cart-items-list');
+            let subtotal = 0;
+            
+            cartListUl.innerHTML = foodList.filter(item => cartData[item.id]).map(item => {
+                const quantity = cartData[item.id];
+                const itemTotal = item.price * quantity;
+                subtotal += itemTotal;
+                return `
+                    <div class="cart-items-title cart-items-item">
+                        <img src="/uploads/${item.image}" alt="">
+                        <p>${item.name}</p>
+                        <p>$${item.price}</p>
+                        <p>${quantity}</p>
+                        <p>$${itemTotal}</p>
+                        <p class="cross" onclick="removeFromCart('${item.id}')">x</p>
+                    </div>
+                    <hr />
+                `;
+            }).join('');
+            
+            document.getElementById('cart-subtotal').innerText = `$${subtotal}`;
+            document.getElementById('cart-total-amount').innerText = `$${subtotal > 0 ? subtotal + 2 : 0}`;
+        }
+    }
+
+    async function removeFromCart(itemId) {
+        await fetch('/api/cart/remove', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId })
+        });
+        loadCart();
+    }
+
+    async function placeOrder() {
+        const address = prompt("Please enter your delivery address:");
+        if (!address) return;
+        
+        // Items in cart summary
+        const cartRes = await fetch('/api/cart/get');
+        const cartData = (await cartRes.json()).cartData;
+        
+        const foodRes = await fetch('/api/food/list');
+        const foodData = (await foodRes.json()).data;
+        
+        const orderItems = foodData.filter(item => cartData[item.id]).map(item => ({
+            ...item,
+            quantity: cartData[item.id]
+        }));
+        
+        const subtotal = orderItems.reduce((acc, curr) => acc + (curr.price * curr.quantity), 0);
+        
+        const response = await fetch('/api/order/place', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: orderItems,
+                amount: subtotal + 2,
+                address: address
+            })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            // Success redirect (mocking Stripe session)
+            location.href = result.session_url;
+        } else {
+            alert(result.message);
+        }
+    }
+
+    window.addEventListener('load', loadCart);
+</script>
+<style>
+    .cart { margin: 100px 8%; }
+    .cart-items-title { display: grid; grid-template-columns: 1fr 1.5fr 1fr 1fr 1fr 0.5fr; align-items: center; color: gray; font-size: max(1vw, 12px); }
+    .cart-items-item { margin: 10px 0px; color: black; }
+    .cart-items-item img { width: 50px; }
+    .cart-items hr { height: 1px; background-color: #e2e2e2; border: none; }
+    .cart-items-item .cross { cursor: pointer; }
+    .cart-bottom { margin-top: 80px; display: flex; justify-content: space-between; gap: max(12vw, 20px); }
+    .cart-total { flex: 1; display: flex; flex-direction: column; gap: 20px; }
+    .cart-total-details { display: flex; justify-content: space-between; color: #555; }
+    .cart-total hr { margin: 10px 0px; }
+    .cart-total button { border: none; color: white; background-color: var(--primary-color); width: max(15vw, 200px); padding: 12px 0px; border-radius: 4px; }
+    .cart-promocode { flex: 1; }
+    .cart-promocode-input { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; background-color: #eaeaea; border-radius: 4px; }
+    .cart-promocode-input input { background: transparent; border: none; outline: none; padding-left: 20px; }
+    .cart-promocode-input button { width: max(10vw, 150px); padding: 12px 5px; background-color: black; border: none; color: white; border-radius: 4px; }
+</style>
+{% endblock %}
